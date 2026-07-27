@@ -93,6 +93,7 @@ const Backup = require('./backup')(sequelize);
 const OIDCIdentity = require('./oidc_identity')(sequelize);
 const OIDCStateNonce = require('./oidc_state_nonce')(sequelize);
 const AuthAuditLog = require('./auth_audit_log')(sequelize);
+const Invitation = require('./invitation')(sequelize);
 const CalDAVCalendar = require('./caldav_calendar')(sequelize);
 const CalDAVSyncState = require('./caldav_sync_state')(sequelize);
 const CalDAVOccurrenceOverride = require('./caldav_occurrence_override')(
@@ -463,6 +464,7 @@ module.exports = {
     OIDCIdentity,
     OIDCStateNonce,
     AuthAuditLog,
+    Invitation,
     CalDAVCalendar,
     CalDAVSyncState,
     CalDAVOccurrenceOverride,

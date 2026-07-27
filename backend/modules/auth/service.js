@@ -29,7 +29,7 @@ class AuthService {
         return { enabled: await isRegistrationEnabled() };
     }
 
-    async register(email, password) {
+    async register(email, password, inviteToken = null) {
         const transaction = await sequelize.transaction();
 
         try {
@@ -40,9 +40,16 @@ class AuthService {
                 );
             }
 
+            // A valid share invitation admits the holder even when open
+            // self-registration is switched off.
             if (!(await isRegistrationEnabled())) {
-                await transaction.rollback();
-                throw new NotFoundError('Registration is not enabled');
+                const invitationsService = require('../invitations/service');
+                const invited =
+                    await invitationsService.allowsRegistration(inviteToken);
+                if (!invited) {
+                    await transaction.rollback();
+                    throw new NotFoundError('Registration is not enabled');
+                }
             }
 
             if (!email || !password) {

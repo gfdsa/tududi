@@ -1634,5 +1634,19 @@
     "open": "Open",
     "streaks": "Streaks",
     "areaBreakdown": "Area Breakdown"
+  },
+  "invites": {
+    "title": "You have been invited",
+    "invitesYouTo": "invites you to",
+    "theArea": "the area",
+    "theProject": "the project",
+    "signInPrompt": "Sign in or create an account to accept.",
+    "accepting": "Accepting invitation…",
+    "invalidTitle": "Invitation not valid",
+    "goHome": "Go to tududi",
+    "sectionTitle": "Invite by link",
+    "createLink": "Create invite link",
+    "copyLink": "Copy link",
+    "expires": "expires"
   }
 }
