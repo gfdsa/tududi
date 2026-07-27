@@ -78,9 +78,9 @@ const invitationsController = {
      */
     async accept(req, res, next) {
         try {
-            const userId = requireUserId(req);
+            requireUserId(req);
             const result = await invitationsService.acceptInvitation(
-                userId,
+                { id: req.currentUser.id, email: req.currentUser.email },
                 req.params.token
             );
             res.json(result);

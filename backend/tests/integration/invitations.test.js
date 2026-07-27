@@ -68,7 +68,7 @@ describe('Share Invitations', () => {
             expect(res.status).toBe(201);
             expect(res.body.token).toBeTruthy();
             expect(res.body.url).toBe(`/invite/${res.body.token}`);
-            expect(res.body.max_uses).toBe(1);
+            expect(res.body.email).toBeNull();
         });
 
         test('non-owner cannot create an invitation', async () => {
@@ -78,6 +78,18 @@ describe('Share Invitations', () => {
                 access_level: 'rw',
             });
             expect(res.status).toBe(403);
+        });
+
+        test('a personal invitation stores the normalized email', async () => {
+            const res = await createInvite({ email: '  Someone@Example.COM ' });
+            expect(res.status).toBe(201);
+            expect(res.body.email).toBe('someone@example.com');
+        });
+
+        test('rejects a malformed invitation email', async () => {
+            expect((await createInvite({ email: 'not-an-email' })).status).toBe(
+                400
+            );
         });
 
         test('rejects invalid resource types and access levels', async () => {
@@ -160,7 +172,7 @@ describe('Share Invitations', () => {
             expect(row.used_count).toBe(0);
         });
 
-        test('an exhausted invitation cannot be accepted by another user', async () => {
+        test('a personal invitation can only be accepted by the invited account', async () => {
             const third = await createTestUser({
                 email: `third_${Date.now()}@test.com`,
                 timezone: 'UTC',
@@ -170,16 +182,38 @@ describe('Share Invitations', () => {
                 .post('/api/login')
                 .send({ email: third.email, password: 'password123' });
 
-            const { token } = (await createInvite()).body; // max_uses 1
+            const { token } = (await createInvite({ email: invitee.email }))
+                .body;
+
+            expect(
+                (await thirdAgent.post(`/api/invitations/${token}/accept`))
+                    .status
+            ).toBe(403);
+            expect(
+                (await inviteeAgent.post(`/api/invitations/${token}/accept`))
+                    .status
+            ).toBe(200);
+        });
+
+        test('a personal invitation is single-acceptance', async () => {
+            const { token } = (await createInvite({ email: invitee.email }))
+                .body;
             await inviteeAgent.post(`/api/invitations/${token}/accept`);
 
-            const res = await thirdAgent.post(
+            // Once the granted share is revoked, the consumed personal
+            // invitation cannot be replayed to regain access.
+            await ownerAgent.delete('/api/shares').send({
+                resource_type: 'project',
+                resource_uid: project.uid,
+                target_user_id: invitee.id,
+            });
+            const res = await inviteeAgent.post(
                 `/api/invitations/${token}/accept`
             );
             expect(res.status).toBe(404);
         });
 
-        test('multi-use invitations admit several users', async () => {
+        test('link invitations admit multiple users until expiry', async () => {
             const third = await createTestUser({
                 email: `third_${Date.now()}@test.com`,
                 timezone: 'UTC',
@@ -189,7 +223,7 @@ describe('Share Invitations', () => {
                 .post('/api/login')
                 .send({ email: third.email, password: 'password123' });
 
-            const { token } = (await createInvite({ max_uses: 2 })).body;
+            const { token } = (await createInvite()).body;
             expect(
                 (await inviteeAgent.post(`/api/invitations/${token}/accept`))
                     .status
@@ -257,6 +291,30 @@ describe('Share Invitations', () => {
             await Setting.destroy({
                 where: { key: 'registration_enabled' },
             }).catch(() => {});
+        });
+
+        test('a personal invite token only admits the invited email', async () => {
+            await Setting.upsert({
+                key: 'registration_enabled',
+                value: 'false',
+            });
+            const { token } = (
+                await createInvite({ email: 'invited-person@example.com' })
+            ).body;
+
+            const wrongEmail = await request(app).post('/api/register').send({
+                email: 'somebody-else@example.com',
+                password: 'ValidPassword123!',
+                invite_token: token,
+            });
+            expect(wrongEmail.status).toBe(404);
+
+            const rightEmail = await request(app).post('/api/register').send({
+                email: 'Invited-Person@example.com',
+                password: 'ValidPassword123!',
+                invite_token: token,
+            });
+            expect(rightEmail.status).toBe(201);
         });
 
         test('a valid invite token admits registration when self-registration is disabled', async () => {

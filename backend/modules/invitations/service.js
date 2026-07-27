@@ -14,7 +14,6 @@ const {
 const RESOURCE_TYPES = ['project', 'area'];
 const ACCESS_LEVELS = ['ro', 'rw'];
 const DEFAULT_TTL_DAYS = 14;
-const MAX_USES_LIMIT = 100;
 
 function displayName(user) {
     if (!user) return null;
@@ -30,7 +29,7 @@ class InvitationsService {
             resource_uid,
             access_level,
             expires_in_days,
-            max_uses,
+            email,
         } = data;
 
         if (!RESOURCE_TYPES.includes(resource_type)) {
@@ -67,27 +66,32 @@ class InvitationsService {
             expires_in_days <= 90
                 ? expires_in_days
                 : DEFAULT_TTL_DAYS;
-        const maxUses =
-            Number.isInteger(max_uses) &&
-            max_uses > 0 &&
-            max_uses <= MAX_USES_LIMIT
-                ? max_uses
-                : 1;
+        // email set: personal invitation (only that account, single
+        // acceptance). email empty: shareable link (anyone, multi-use
+        // until expiry).
+        let normalizedEmail = null;
+        if (email != null && String(email).trim() !== '') {
+            normalizedEmail = String(email).trim().toLowerCase();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+                throw new ValidationError('Invalid email address');
+            }
+        }
 
         const invitation = await invitationsRepository.create({
             inviter_user_id: resource.user_id,
             resource_type,
             resource_uid,
             access_level,
+            email: normalizedEmail,
             expires_at: new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000),
-            max_uses: maxUses,
+            max_uses: 1,
         });
 
         return {
             token: invitation.token,
             url: `/invite/${invitation.token}`,
             expires_at: invitation.expires_at,
-            max_uses: invitation.max_uses,
+            email: invitation.email,
         };
     }
 
@@ -115,11 +119,11 @@ class InvitationsService {
             token: r.token,
             access_level: r.access_level,
             expires_at: r.expires_at,
-            max_uses: r.max_uses,
+            email: r.email,
             used_count: r.used_count,
             active:
                 new Date(r.expires_at).getTime() > now &&
-                r.used_count < r.max_uses,
+                (!r.email || r.used_count < 1),
         }));
     }
 
@@ -147,7 +151,9 @@ class InvitationsService {
         if (new Date(invitation.expires_at).getTime() <= Date.now()) {
             throw new NotFoundError('Invitation has expired');
         }
-        if (invitation.used_count >= invitation.max_uses) {
+        // Personal invitations are single-acceptance; link invitations stay
+        // valid until they expire.
+        if (invitation.email && invitation.used_count >= 1) {
             throw new NotFoundError('Invitation has already been used');
         }
 
@@ -186,6 +192,7 @@ class InvitationsService {
             resource_name: resource.name,
             access_level: invitation.access_level,
             inviter_name: displayName(inviter),
+            invited_email: invitation.email,
         };
     }
 
@@ -193,10 +200,21 @@ class InvitationsService {
      * Grant the invited share to the (authenticated) accepting user.
      * Idempotent: accepting your own resource or an existing share succeeds.
      */
-    async acceptInvitation(userId, token) {
+    async acceptInvitation(user, token) {
+        const userId = user.id;
         const invitation = await invitationsRepository.findByToken(token);
         if (!invitation) {
             throw new NotFoundError('Invitation not found');
+        }
+
+        // Personal invitations may only be accepted by the invited account.
+        if (
+            invitation.email &&
+            invitation.email !== (user.email || '').toLowerCase()
+        ) {
+            throw new ForbiddenError(
+                'This invitation was issued for a different account.'
+            );
         }
 
         // The owner and users already holding a share succeed even on an
@@ -248,10 +266,18 @@ class InvitationsService {
      * True when the token permits registration even while self-registration
      * is disabled. Never throws.
      */
-    async allowsRegistration(token) {
+    async allowsRegistration(token, email) {
         if (!token) return false;
         try {
-            await this.validateToken(token);
+            const { invitation } = await this.validateToken(token);
+            // A personal invitation only admits registration of the invited
+            // address.
+            if (
+                invitation.email &&
+                invitation.email !== (email || '').trim().toLowerCase()
+            ) {
+                return false;
+            }
             return true;
         } catch {
             return false;

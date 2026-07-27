@@ -1647,6 +1647,10 @@
     "sectionTitle": "Invite by link",
     "createLink": "Create invite link",
     "copyLink": "Copy link",
-    "expires": "expires"
+    "expires": "expires",
+    "modeHint": "With an email: personal, single-use invitation. Without: anyone with the link can join until it expires.",
+    "emailPlaceholder": "Email (optional — leave empty for a shareable link)",
+    "anyoneWithLink": "Anyone with the link",
+    "personalFor": "This invitation is for"
   }
 }

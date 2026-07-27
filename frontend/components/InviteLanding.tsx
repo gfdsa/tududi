@@ -99,6 +99,15 @@ const InviteLanding: React.FC<InviteLandingProps> = ({ authenticated }) => {
                                 ? t('shares.readWrite', 'Read & write')
                                 : t('shares.readOnly', 'Read only')}
                         </p>
+                        {preview.invited_email && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+                                {t(
+                                    'invites.personalFor',
+                                    'This invitation is for'
+                                )}{' '}
+                                {preview.invited_email}
+                            </p>
+                        )}
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                             {t(
                                 'invites.signInPrompt',
