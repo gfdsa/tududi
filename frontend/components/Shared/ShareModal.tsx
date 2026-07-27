@@ -10,6 +10,7 @@ import {
 import { ChevronDownIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { getCurrentUser } from '../../utils/userUtils';
 import { getApiPath } from '../../config/paths';
+import InviteLinkSection from './InviteLinkSection';
 
 interface ShareModalProps {
     isOpen: boolean;
@@ -413,6 +414,13 @@ const ShareModal: React.FC<ShareModalProps> = ({
                         )}
                     </div>
                 </div>
+                {(resourceType === 'project' || resourceType === 'area') &&
+                    resourceUid && (
+                        <InviteLinkSection
+                            resourceType={resourceType}
+                            resourceUid={resourceUid}
+                        />
+                    )}
             </div>
         </div>
     );

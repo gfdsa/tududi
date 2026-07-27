@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getAssetPath } from '../config/paths';
+import { peekPendingInvite } from '../utils/invitationsService';
 
 const Register: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -62,12 +63,21 @@ const Register: React.FC = () => {
         }
 
         try {
+            // A share-invitation token (from the URL or a visited invite
+            // page) admits registration even when self-registration is off.
+            const inviteToken =
+                new URLSearchParams(window.location.search).get('invite') ||
+                peekPendingInvite();
             const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({
+                    email,
+                    password,
+                    invite_token: inviteToken || undefined,
+                }),
                 credentials: 'include',
             });
 

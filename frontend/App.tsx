@@ -1,5 +1,12 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
+import {
+    Routes,
+    Route,
+    Navigate,
+    Outlet,
+    useParams,
+    useNavigate,
+} from 'react-router-dom';
 
 const NoteRedirect: React.FC = () => {
     const { uidSlug } = useParams<{ uidSlug: string }>();
@@ -10,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 import Login from './components/Login';
 import Register from './components/Register';
 import OIDCCallback from './components/Auth/OIDCCallback';
+import InviteLanding from './components/InviteLanding';
+import { peekPendingInvite } from './utils/invitationsService';
 import NotFound from './components/Shared/NotFound';
 import ProjectDetails from './components/Project/ProjectDetails';
 import Projects from './components/Projects';
@@ -51,6 +60,18 @@ const App: React.FC = () => {
     const { i18n } = useTranslation();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    // A pending invite token survives any auth round-trip (password login,
+    // registration, OIDC redirect) in localStorage; once a session exists,
+    // route back to the invite page, which redeems it.
+    useEffect(() => {
+        if (!currentUser) return;
+        const pending = peekPendingInvite();
+        if (pending && !window.location.pathname.includes('/invite/')) {
+            navigate(`/invite/${pending}`);
+        }
+    }, [currentUser]);
 
     if (!i18n.isInitialized) {
         return <LoadingScreen />;
@@ -78,21 +99,31 @@ const App: React.FC = () => {
             if (data.user) {
                 setCurrentUser(data.user);
                 setUserInStorage(data.user);
-                useStore.getState().userSettingsStore.setEisenhowerEnabled(
-                    data.user.features?.eisenhower_enabled === true
-                );
-                useStore.getState().userSettingsStore.setKanbanEnabled(
-                    data.user.features?.kanban_enabled === true
-                );
-                useStore.getState().userSettingsStore.setHabitsEnabled(
-                    data.user.features?.habits_enabled !== false
-                );
-                useStore.getState().userSettingsStore.setCalendarEnabled(
-                    data.user.features?.calendar_enabled === true
-                );
-                useStore.getState().userSettingsStore.setAiAssistantEnabled(
-                    data.user.features?.ai_assistant_enabled === true
-                );
+                useStore
+                    .getState()
+                    .userSettingsStore.setEisenhowerEnabled(
+                        data.user.features?.eisenhower_enabled === true
+                    );
+                useStore
+                    .getState()
+                    .userSettingsStore.setKanbanEnabled(
+                        data.user.features?.kanban_enabled === true
+                    );
+                useStore
+                    .getState()
+                    .userSettingsStore.setHabitsEnabled(
+                        data.user.features?.habits_enabled !== false
+                    );
+                useStore
+                    .getState()
+                    .userSettingsStore.setCalendarEnabled(
+                        data.user.features?.calendar_enabled === true
+                    );
+                useStore
+                    .getState()
+                    .userSettingsStore.setAiAssistantEnabled(
+                        data.user.features?.ai_assistant_enabled === true
+                    );
             } else {
                 setCurrentUser(null);
                 setUserInStorage(null);
@@ -257,13 +288,38 @@ const App: React.FC = () => {
                                     </Suspense>
                                 }
                             />
-                            <Route path="/eisenhower" element={<Navigate to="/boards/eisenhower" replace />} />
-                            <Route path="/kanban" element={<Navigate to="/boards/kanban" replace />} />
-                            <Route path="/boards/eisenhower" element={<EisenhowerMatrix />} />
-                            <Route path="/boards/kanban" element={<KanbanBoard />} />
-                            <Route path="/insights/daily-brief" element={<DailyBriefPage />} />
-                            <Route path="/insights/productivity" element={<ProductivityPage />} />
-                            <Route path="/insights/reports" element={<ReportsPage />} />
+                            <Route
+                                path="/eisenhower"
+                                element={
+                                    <Navigate to="/boards/eisenhower" replace />
+                                }
+                            />
+                            <Route
+                                path="/kanban"
+                                element={
+                                    <Navigate to="/boards/kanban" replace />
+                                }
+                            />
+                            <Route
+                                path="/boards/eisenhower"
+                                element={<EisenhowerMatrix />}
+                            />
+                            <Route
+                                path="/boards/kanban"
+                                element={<KanbanBoard />}
+                            />
+                            <Route
+                                path="/insights/daily-brief"
+                                element={<DailyBriefPage />}
+                            />
+                            <Route
+                                path="/insights/productivity"
+                                element={<ProductivityPage />}
+                            />
+                            <Route
+                                path="/insights/reports"
+                                element={<ReportsPage />}
+                            />
                             <Route path="/inbox" element={<InboxItems />} />
                             <Route path="/habits" element={<Habits />} />
                             <Route
@@ -277,7 +333,10 @@ const App: React.FC = () => {
                                 element={<ProjectDetails />}
                             />
                             <Route path="/areas" element={<Areas />} />
-                            <Route path="/area/:uidSlug" element={<AreaDetails />} />
+                            <Route
+                                path="/area/:uidSlug"
+                                element={<AreaDetails />}
+                            />
                             <Route path="/tags" element={<Tags />} />
                             <Route
                                 path="/tag/:uidSlug"
@@ -311,7 +370,10 @@ const App: React.FC = () => {
                             />
                             <Route path="/backup" element={<BackupRestore />} />
                             <Route path="/people" element={<PeopleList />} />
-                            <Route path="/person/:uid" element={<PersonDetails />} />
+                            <Route
+                                path="/person/:uid"
+                                element={<PersonDetails />}
+                            />
                             <Route
                                 path="/admin/users"
                                 element={
@@ -337,6 +399,10 @@ const App: React.FC = () => {
                                     )
                                 }
                             />
+                            <Route
+                                path="/invite/:token"
+                                element={<InviteLanding authenticated={true} />}
+                            />
                             <Route path="*" element={<NotFound />} />
                         </Route>
                     </>
@@ -344,6 +410,10 @@ const App: React.FC = () => {
                     <>
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        <Route
+                            path="/invite/:token"
+                            element={<InviteLanding authenticated={false} />}
+                        />
                         <Route
                             path="/auth/callback/:provider"
                             element={<OIDCCallback />}

@@ -247,6 +247,7 @@ const projectsModule = require('./modules/projects');
 const quotesModule = require('./modules/quotes');
 const searchModule = require('./modules/search');
 const sharesModule = require('./modules/shares');
+const invitationsModule = require('./modules/invitations');
 const tagsModule = require('./modules/tags');
 const tasksModule = require('./modules/tasks');
 const telegramModule = require('./modules/telegram');
@@ -322,6 +323,9 @@ const registerApiRoutes = (basePath) => {
     app.use(basePath, authModule.routes);
     app.use(basePath, featureFlagsModule.routes);
     app.use(`${basePath}/oidc`, oidcModule.routes);
+    // Invite preview is public: the landing page shows what the visitor was
+    // invited to before they authenticate.
+    app.use(basePath, invitationsModule.publicRoutes);
 
     app.use(basePath, requireAuth);
     app.use(basePath, tasksModule.routes);
@@ -329,6 +333,7 @@ const registerApiRoutes = (basePath) => {
     app.use(basePath, projectsModule.routes);
     app.use(basePath, adminModule.routes);
     app.use(basePath, sharesModule.routes);
+    app.use(basePath, invitationsModule.routes);
     app.use(basePath, areasModule.routes);
     app.use(basePath, goalsModule.routes);
     app.use(basePath, notesModule.routes);
