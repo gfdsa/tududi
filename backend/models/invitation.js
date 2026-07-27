@@ -37,6 +37,13 @@ module.exports = (sequelize) => {
                 type: DataTypes.STRING,
                 allowNull: false,
             },
+            // Set: personal invitation, only this email may accept, single
+            // acceptance. Null: shareable link, multi-use until expiry.
+            email: {
+                type: DataTypes.STRING,
+                allowNull: true,
+                defaultValue: null,
+            },
             expires_at: {
                 type: DataTypes.DATE,
                 allowNull: false,

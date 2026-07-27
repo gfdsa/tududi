@@ -8,7 +8,7 @@ export interface Invitation {
     token: string;
     access_level: InviteAccessLevel;
     expires_at: string;
-    max_uses: number;
+    email: string | null;
     used_count: number;
     active: boolean;
 }
@@ -18,6 +18,7 @@ export interface InvitationPreview {
     resource_name: string;
     access_level: InviteAccessLevel;
     inviter_name: string | null;
+    invited_email: string | null;
 }
 
 const PENDING_INVITE_KEY = 'pending_invite_token';
@@ -50,7 +51,8 @@ export const createInvitation = async (params: {
     resource_type: InviteResourceType;
     resource_uid: string;
     access_level: InviteAccessLevel;
-}): Promise<{ token: string; url: string }> => {
+    email?: string;
+}): Promise<{ token: string; url: string; email: string | null }> => {
     const res = await fetch(getApiPath('invitations'), {
         method: 'POST',
         credentials: 'include',

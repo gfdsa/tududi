@@ -44,8 +44,10 @@ class AuthService {
             // self-registration is switched off.
             if (!(await isRegistrationEnabled())) {
                 const invitationsService = require('../invitations/service');
-                const invited =
-                    await invitationsService.allowsRegistration(inviteToken);
+                const invited = await invitationsService.allowsRegistration(
+                    inviteToken,
+                    email
+                );
                 if (!invited) {
                     await transaction.rollback();
                     throw new NotFoundError('Registration is not enabled');

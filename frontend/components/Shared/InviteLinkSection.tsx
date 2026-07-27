@@ -30,6 +30,7 @@ const InviteLinkSection: React.FC<InviteLinkSectionProps> = ({
     const { t } = useTranslation();
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [access, setAccess] = useState<InviteAccessLevel>('ro');
+    const [email, setEmail] = useState('');
     const [creating, setCreating] = useState(false);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -64,7 +65,9 @@ const InviteLinkSection: React.FC<InviteLinkSectionProps> = ({
                 resource_type: resourceType,
                 resource_uid: resourceUid,
                 access_level: access,
+                email: email.trim() || undefined,
             });
+            setEmail('');
             await refresh();
             await copy(created.token);
         } catch (err: any) {
@@ -90,6 +93,22 @@ const InviteLinkSection: React.FC<InviteLinkSectionProps> = ({
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t('invites.sectionTitle', 'Invite by link')}
             </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+                {t(
+                    'invites.modeHint',
+                    'With an email: personal, single-use invitation. Without: anyone with the link can join until it expires.'
+                )}
+            </p>
+            <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t(
+                    'invites.emailPlaceholder',
+                    'Email (optional — leave empty for a shareable link)'
+                )}
+                className="w-full rounded border px-3 py-1.5 text-sm mb-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+            />
             <div className="flex items-center gap-2 mb-2">
                 <select
                     value={access}
@@ -130,6 +149,12 @@ const InviteLinkSection: React.FC<InviteLinkSectionProps> = ({
                                     {inviteUrl(inv.token)}
                                 </div>
                                 <div className="text-xs text-gray-500">
+                                    {inv.email ||
+                                        t(
+                                            'invites.anyoneWithLink',
+                                            'Anyone with the link'
+                                        )}
+                                    {' · '}
                                     {inv.access_level === 'rw'
                                         ? t('shares.readWrite', 'Read & write')
                                         : t('shares.readOnly', 'Read only')}
