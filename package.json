@@ -190,7 +190,7 @@
     "qs": "^6.15.2",
     "js-cookie": "^3.0.8",
     "ip-address": "^10.2.0",
-    "fast-uri": "^3.1.4"
+    "fast-uri": "^3.1.5"
   },
   "lint-staged": {
     "frontend/**/*.{js,jsx,ts,tsx}": [
